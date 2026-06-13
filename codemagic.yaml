@@ -27,6 +27,36 @@ workflows:
       - flutter_drive.log
 
   # ---------------------------------------------------------------------------
+  # 1b) SIMULATOR BUILD — for running the app in a browser with Appetize.io
+  #     (no iPhone / no Mac needed). Produces a Simulator .app, zipped.
+  #     Download "Runner_simulator.zip" from artifacts, then upload it at
+  #     https://appetize.io/upload to run the app live in your browser.
+  # ---------------------------------------------------------------------------
+  ios-simulator:
+    name: iOS Simulator Build (for Appetize.io)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Flutter packages get
+        script: flutter pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          find . -name "Podfile" -execdir pod install \;
+      - name: Flutter build for iOS Simulator
+        script: |
+          flutter build ios --simulator --debug
+      - name: Zip the Simulator .app
+        script: |
+          cd build/ios/iphonesimulator
+          zip -r -y "$CM_BUILD_DIR/Runner_simulator.zip" Runner.app
+    artifacts:
+      - Runner_simulator.zip
+
+  # ---------------------------------------------------------------------------
   # 2) SIGNED App Store build — produces a real .ipa and uploads to TestFlight.
   #    Requires:
   #      - A Codemagic App Store Connect integration named "codemagic"
