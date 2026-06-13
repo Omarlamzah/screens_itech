@@ -27,41 +27,43 @@ workflows:
       - flutter_drive.log
 
   # ---------------------------------------------------------------------------
-  # 2) SIGNED App Store build — ENABLE LATER once you have:
-  #      - An Apple Developer account ($99/yr)
-  #      - An App Store Connect API key uploaded to Codemagic
-  #      - An integration named "codemagic" (Teams > Integrations > Developer Portal)
-  #    Then uncomment this workflow and fill in your values.
+  # 2) SIGNED App Store build — produces a real .ipa and uploads to TestFlight.
+  #    Requires a Codemagic App Store Connect integration named "codemagic"
+  #    (Codemagic > Teams/Personal Account > Integrations > Developer Portal),
+  #    set up with the .p8 key R8CTZW8NMJ + Issuer ID 24e51026-...-d7791751dfd5.
   # ---------------------------------------------------------------------------
-  # ios-appstore:
-  #   name: iOS App Store Build
-  #   instance_type: mac_mini_m2
-  #   max_build_duration: 90
-  #   integrations:
-  #     app_store_connect: codemagic
-  #   environment:
-  #     flutter: stable
-  #     xcode: latest
-  #     cocoapods: default
-  #     ios_signing:
-  #       distribution_type: app_store
-  #       bundle_identifier: com.itechevent.lesThemeApp
-  #     vars:
-  #       APP_STORE_APP_ID: 1234567890   # your numeric App Store app id
-  #   scripts:
-  #     - name: Set up code signing
-  #       script: xcode-project use-profiles
-  #     - name: Flutter packages get
-  #       script: flutter pub get
-  #     - name: Install CocoaPods dependencies
-  #       script: find . -name "Podfile" -execdir pod install \;
-  #     - name: Flutter build ipa
-  #       script: |
-  #         flutter build ipa --release \
-  #           --export-options-plist=/Users/builder/export_options.plist
-  #   artifacts:
-  #     - build/ios/ipa/*.ipa
-  #   publishing:
-  #     app_store_connect:
-  #       auth: integration
-  #       submit_to_testflight: true
+  ios-appstore:
+    name: iOS App Store Build
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.itechevent.lesThemeApp
+      vars:
+        APP_STORE_APP_ID: 6780065615
+    scripts:
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Flutter packages get
+        script: flutter pub get
+      - name: Install CocoaPods dependencies
+        script: find . -name "Podfile" -execdir pod install \;
+      - name: Set build number
+        script: |
+          LATEST_BUILD=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
+          flutter build ipa --release \
+            --build-number=$(($LATEST_BUILD + 1)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
