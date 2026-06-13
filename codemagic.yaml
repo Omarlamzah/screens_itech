@@ -28,9 +28,12 @@ workflows:
 
   # ---------------------------------------------------------------------------
   # 2) SIGNED App Store build — produces a real .ipa and uploads to TestFlight.
-  #    Requires a Codemagic App Store Connect integration named "codemagic"
-  #    (Codemagic > Teams/Personal Account > Integrations > Developer Portal),
-  #    set up with the .p8 key R8CTZW8NMJ + Issuer ID 24e51026-...-d7791751dfd5.
+  #    Requires:
+  #      - A Codemagic App Store Connect integration named "codemagic"
+  #        (key R8CTZW8NMJ + Issuer ID 24e51026-...-d7791751dfd5).
+  #      - A secure env var CERTIFICATE_PRIVATE_KEY in group "appstore_credentials"
+  #        (contents of "my files/cert_key.pem"). Codemagic uses it to create the
+  #        signing certificate + provisioning profile automatically (--create).
   # ---------------------------------------------------------------------------
   ios-appstore:
     name: iOS App Store Build
@@ -39,22 +42,29 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
+      groups:
+        - appstore_credentials   # must contain CERTIFICATE_PRIVATE_KEY
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.itechevent.lesThemeApp
       vars:
         APP_STORE_APP_ID: 6780065615
+        BUNDLE_ID: "com.itechevent.lesThemeApp"
     scripts:
-      - name: Set up code signing
-        script: xcode-project use-profiles
+      - name: Set up code signing (create cert + profile)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Flutter packages get
         script: flutter pub get
       - name: Install CocoaPods dependencies
         script: find . -name "Podfile" -execdir pod install \;
-      - name: Set build number
+      - name: Build signed IPA
         script: |
           LATEST_BUILD=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
           flutter build ipa --release \
