@@ -96,7 +96,9 @@ workflows:
         script: find . -name "Podfile" -execdir pod install \;
       - name: Build signed IPA
         script: |
-          LATEST_BUILD=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
+          # Use the latest TestFlight build number (App Store number is 0 until a
+          # version is created), so every upload gets a strictly higher number.
+          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
           flutter build ipa --release \
             --build-number=$(($LATEST_BUILD + 1)) \
             --export-options-plist=/Users/builder/export_options.plist
