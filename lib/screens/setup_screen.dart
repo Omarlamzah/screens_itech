@@ -6,7 +6,6 @@ import '../services/api_service.dart';
 import 'admin_screen.dart';
 import 'display_screen.dart';
 import 'login_screen.dart';
-import 'web_admin_screen.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const _bg         = Color(0xFF080b10);

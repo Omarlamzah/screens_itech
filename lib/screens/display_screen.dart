@@ -175,6 +175,14 @@ class _DisplayScreenState extends State<DisplayScreen> {
             IgnorePointer(
               child: const Center(child: CircularProgressIndicator(color: Color(0xFF6366f1))),
             ),
+          if (_hasError && !_loading)
+            Center(
+              child: FilledButton.icon(
+                onPressed: () => _ctrl.reload(),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Reload display'),
+              ),
+            ),
           Positioned(
             top: 0, right: 0,
             child: GestureDetector(
